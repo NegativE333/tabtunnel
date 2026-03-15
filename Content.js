@@ -2,12 +2,29 @@
 // Runs on every page. Sends selection to background script which stores it scoped by tab ID.
 
 function saveSelection() {
+  // Check if chrome API is available
+  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+    return;
+  }
+
   const text = window.getSelection()?.toString().trim() || '';
+  
   // Send to background script which will store it with the correct tab ID
-  chrome.runtime.sendMessage({ 
-    type: 'SAVE_SELECTION', 
-    text: text 
-  });
+  try {
+    chrome.runtime.sendMessage({ 
+      type: 'SAVE_SELECTION', 
+      text: text 
+    }, (response) => {
+      // Handle potential errors silently
+      if (chrome.runtime.lastError) {
+        // Extension context might be invalidated, ignore
+        return;
+      }
+    });
+  } catch (error) {
+    // Silently handle errors (extension might be reloading, etc.)
+    return;
+  }
 }
 
 // Save on mouseup (user finishes a selection drag)
